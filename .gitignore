@@ -1,0 +1,21 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.env
+
+# generated files
+app.py.bak
+models/operator_profile.json
+
+# streamlit
+.streamlit/
+
+# logs
+/tmp/streamlit.log
+*.log

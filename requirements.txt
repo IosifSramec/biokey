@@ -1,0 +1,6 @@
+wfdb
+neurokit2
+torch
+scipy
+cryptography
+numpy
