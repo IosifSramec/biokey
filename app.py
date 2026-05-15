@@ -83,7 +83,7 @@ hr {{ border-color:{ACC}22 !important; }}
 h1,h2,h3 {{ color:{ACC} !important; }}
 </style>
 <div class="nav-bar">
-  <span class="nav-brand">BIOKEY SYSTEM v1.0</span>
+  <span class="nav-brand">BIOKEY SYSTEM v2.0</span>
   <div class="nav-links">
     <a href="#overview">Overview</a>
     <a href="#signals">Signals</a>
@@ -181,6 +181,121 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
+# ── SECTION 1: OVERVIEW ──────────────────────────────────────────────────────
+st.markdown('<div id="overview"></div>', unsafe_allow_html=True)
+st.markdown(f"""
+<div class="section-sm">
+<div class="sec-label">// SECTION 01</div>
+<div class="sec-title">System Architecture</div>
+<div class="sec-desc">End-to-end workflow — from raw ECG signal to AES-256-GCM encrypted terrain database.</div>
+
+<style>
+.blk {{
+  border:1px solid {ACC}44; border-radius:4px; padding:0.45rem 0.8rem;
+  font-size:0.72rem; text-align:center; background:{SURF};
+  font-family:'Share Tech Mono',monospace;
+}}
+.blk-in  {{ border-color:{ACC}; background:{ACC}18; font-weight:700; }}
+.blk-ok  {{ border-color:{ACC}; background:{ACC}22; color:{ACC}; }}
+.blk-err {{ border-color:{ERR}; background:#fce8e8;  color:{ERR}; }}
+.blk-out {{ border-color:{ACC}99; background:{ACC}12; }}
+.blk-sub {{ font-size:0.63rem; color:{ACC}66; margin-top:0.15rem; }}
+.arr {{ text-align:center; color:{ACC}44; font-size:1rem; line-height:1.4; }}
+.col-title {{ font-size:0.65rem; letter-spacing:0.2em; color:{ACC}66; margin-bottom:0.6rem; }}
+.branch {{ display:flex; gap:0.5rem; align-items:stretch; }}
+.branch-line {{ width:1px; background:{ACC}33; align-self:stretch; }}
+</style>
+
+<div style="display:grid;grid-template-columns:1fr 1px 1fr;gap:1.5rem;margin-top:1rem;">
+
+<!-- ═══ ENROLLMENT ═══ -->
+<div>
+  <div class="col-title">// ENROLLMENT</div>
+
+  <div style="display:flex;gap:0.5rem;">
+    <div class="blk blk-in" style="flex:2;">ECG + RESP<div class="blk-sub">raw signal — 5 stress levels</div></div>
+    <div class="blk blk-in" style="flex:1;">PIN<div class="blk-sub">operator secret</div></div>
+  </div>
+  <div style="display:flex;">
+    <div class="arr" style="flex:2;">↓</div>
+    <div class="arr" style="flex:1;">↓</div>
+  </div>
+  <div style="display:flex;gap:0.5rem;">
+    <div class="blk" style="flex:2;">Feature Extraction<div class="blk-sub">14 features × 5 templates</div></div>
+    <div class="blk" style="flex:1;">SHA-256<div class="blk-sub">→ salt (32B)</div></div>
+  </div>
+  <div style="display:flex;">
+    <div class="arr" style="flex:2;">↓</div>
+    <div class="arr" style="flex:1;">↓</div>
+  </div>
+  <div style="display:flex;gap:0.5rem;">
+    <div class="blk" style="flex:2;">Scale + Quantize → SHA-256<div class="blk-sub">→ seed (32B)</div></div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;color:{ACC}44;font-size:1.2rem;">↘</div>
+  </div>
+  <div class="arr">↓</div>
+  <div class="blk">HKDF — SHA-256<div class="blk-sub">HKDF( seed, salt ) → wrapping_key (32B)</div></div>
+  <div class="arr">↓</div>
+  <div style="display:flex;gap:0.5rem;align-items:center;">
+    <div class="blk" style="flex:2;">AES-256-GCM Encrypt<div class="blk-sub">wrapping_key.encrypt( aes_key )</div></div>
+    <div style="flex:1;font-size:0.68rem;color:{ACC}66;text-align:center;">← aes_key<br>os.urandom(32)<br>generated once</div>
+  </div>
+  <div class="arr">↓</div>
+  <div class="blk blk-out">Profile JSON<div class="blk-sub">wrapped_key × 5 &nbsp;|&nbsp; templates × 5</div></div>
+  <div class="arr">↓</div>
+  <div class="blk blk-out">AES-256-GCM Encrypt<div class="blk-sub">aes_key.encrypt( terrain_db ) → stored</div></div>
+</div>
+
+<!-- divider -->
+<div style="background:{ACC}22;"></div>
+
+<!-- ═══ AUTHENTICATION ═══ -->
+<div>
+  <div class="col-title">// AUTHENTICATION</div>
+
+  <div style="display:flex;gap:0.5rem;">
+    <div class="blk blk-in" style="flex:2;">Live ECG<div class="blk-sub">current measurement</div></div>
+    <div class="blk blk-in" style="flex:1;">PIN<div class="blk-sub">operator input</div></div>
+  </div>
+  <div class="arr">↓</div>
+  <div class="blk">Feature Extraction<div class="blk-sub">14 features from live signal</div></div>
+  <div class="arr">↓</div>
+  <div class="blk">Biometric Similarity × 5<div class="blk-sub">( cosine + proximity ) / 2 vs each template</div></div>
+  <div class="arr">↓</div>
+  <div class="blk" style="border-color:{ACC}88;">best_sim &gt; 0.85 ?<div class="blk-sub">nearest-neighbor threshold check</div></div>
+  <div style="display:flex;gap:0.5rem;">
+    <div style="flex:1;">
+      <div class="arr">↓ NO</div>
+      <div class="blk blk-err">ACCESS DENIED<div class="blk-sub">biometric mismatch</div></div>
+    </div>
+    <div style="flex:1;">
+      <div class="arr">↓ YES</div>
+      <div class="blk">Stored Template<div class="blk-sub">best match → seed derivation</div></div>
+      <div class="arr">↓</div>
+      <div class="blk">Scale + Quantize → SHA-256<div class="blk-sub">seed + SHA-256(PIN) = salt</div></div>
+      <div class="arr">↓</div>
+      <div class="blk">HKDF → wrapping_key<div class="blk-sub">deterministic from template + PIN</div></div>
+      <div class="arr">↓</div>
+      <div class="blk">AES-256-GCM Decrypt<div class="blk-sub">wrapping_key.decrypt( wrapped_key )</div></div>
+      <div style="display:flex;gap:0.4rem;">
+        <div style="flex:1;">
+          <div class="arr" style="font-size:0.7rem;">↓ tag fail</div>
+          <div class="blk blk-err" style="font-size:0.66rem;">PIN WRONG<div class="blk-sub">GCM auth tag mismatch</div></div>
+        </div>
+        <div style="flex:1;">
+          <div class="arr" style="font-size:0.7rem;">↓ ok</div>
+          <div class="blk">aes_key (32B)<div class="blk-sub">unwrapped</div></div>
+          <div class="arr">↓</div>
+          <div class="blk blk-ok">ACCESS GRANTED<div class="blk-sub">terrain DB decrypted</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+</div>
+""", unsafe_allow_html=True)
+
 # ── SECTION 2: SIGNALS ───────────────────────────────────────────────────────
 st.markdown('<div id="signals"></div>', unsafe_allow_html=True)
 st.markdown('<div class="section-sm">', unsafe_allow_html=True)
@@ -219,6 +334,7 @@ st.markdown('<div class="sec-label">// SECTION 03</div><div class="sec-title" st
 e1, e2 = st.columns([1,2], gap='large')
 with e1:
     enroll_op = st.selectbox('Operator to enroll', list(OPERATORS.keys()), key='enroll_op')
+    enroll_pin = st.text_input('Operator PIN', type='password', key='enroll_pin', placeholder='min 4 characters')
     enroll_btn = st.button('ENROLL OPERATOR', type='primary', use_container_width=True)
 with e2:
     st.markdown('<div class="card-label">SELECT STRESS LEVELS</div>', unsafe_allow_html=True)
@@ -233,12 +349,14 @@ with e2:
 if enroll_btn:
     if not selected_levels:
         st.warning('Select at least one stress level.')
+    elif len(enroll_pin) < 4:
+        st.warning('PIN must be at least 4 characters.')
     else:
         with st.spinner('Running stress test protocol...'):
             paths = OPERATORS[enroll_op]
             all_t = extract_stress_templates(paths['stdb'], paths['bidmc'])
             templates = {k:v for k,v in all_t.items() if k in selected_levels}
-            profile, aes_key = enroll_multi(templates)
+            profile, aes_key = enroll_multi(templates, pin=enroll_pin)
             os.makedirs('models', exist_ok=True)
             save_profile(profile, PROFILE_PATH)
             enc = encrypt_database(aes_key, TERRAIN_DB)
@@ -266,11 +384,14 @@ st.markdown('<div id="authentication"></div>', unsafe_allow_html=True)
 st.markdown('<div class="section-sm">', unsafe_allow_html=True)
 st.markdown('<div class="sec-label">// SECTION 04</div><div class="sec-title" style="font-size:1.3rem;">Authentication</div><div class="sec-desc">Select who is authenticating and at what stress level. The system finds the nearest enrolled template and unlocks the AES key if similarity exceeds the threshold.</div>', unsafe_allow_html=True)
 
-a1,a2,a3,a4 = st.columns([1.2,1,0.8,1], gap='medium')
+a1, a2, a3 = st.columns([1.2, 1, 1], gap='medium')
 with a1: auth_op = st.selectbox('Authenticating as', list(OPERATORS.keys())+['Random injection'], key='auth_op')
 with a2: auth_stress = st.selectbox('Stress state', STRESS_LEVELS, key='auth_stress')
-with a3: noise = st.slider('Signal noise', 0.0, 3.0, 0.5, 0.1, key='noise')
-with a4:
+with a3: auth_pin = st.text_input('PIN', type='password', key='auth_pin', placeholder='operator PIN')
+
+b1, b2 = st.columns([3, 1], gap='medium')
+with b1: noise = st.slider('Signal noise', 0.0, 3.0, 0.5, 0.1, key='noise')
+with b2:
     st.markdown('<div style="height:1.8rem;"></div>', unsafe_allow_html=True)
     auth_btn = st.button('AUTHENTICATE', type='primary', use_container_width=True)
 
@@ -302,16 +423,17 @@ if auth_btn:
         sims = {level: biometric_similarity(features, np.array(profile_loaded['templates'][level])) for level in profile_loaded['templates']}
         st.session_state.similarities = sims
         try:
-            aes_key, matched, _ = authenticate_multi(features, profile_loaded)
+            aes_key, matched, _ = authenticate_multi(features, profile_loaded, pin=auth_pin)
             if not st.session_state['encrypted']:
                 st.session_state['encrypted'] = encrypt_database(aes_key, TERRAIN_DB)
             decrypted = decrypt_database(aes_key, st.session_state['encrypted'])
             st.session_state['decrypted_db'] = decrypted.decode()
             st.session_state.drone_state = 'granted'
             st.session_state.auth_result = {'success':True,'label':'ACCESS GRANTED','detail':f'matched: {matched.upper()} // score: {max(sims.values()):.4f}'}
-        except ValueError:
+        except ValueError as e:
             st.session_state.drone_state = 'denied'
-            st.session_state.auth_result = {'success':False,'label':'ACCESS DENIED','detail':f'best score: {max(sims.values()):.4f} // required: 0.85'}
+            detail = str(e)
+            st.session_state.auth_result = {'success':False,'label':'ACCESS DENIED','detail':detail}
             st.session_state['decrypted_db'] = None
         st.rerun()
 
@@ -334,8 +456,18 @@ st.markdown('<div class="sec-label">// SECTION 05</div><div class="sec-title" st
 
 atk1, atk2 = st.columns([2,1], gap='large')
 with atk1:
-    attack_type = st.selectbox('Attack type', ['Different operator (biometric mismatch)', 'Random biometric injection'], key='atk_type')
-    desc = 'Attacker uses valid ECG from a different operator. Features are real but do not match the enrolled template.' if 'Different' in attack_type else 'Attacker injects random biometric values attempting to brute-force the threshold. Computationally infeasible.'
+    attack_type = st.selectbox('Attack type', [
+        'Different operator (biometric mismatch)',
+        'Correct biometrics, wrong PIN',
+        'Random biometric injection',
+    ], key='atk_type')
+    descs = {
+        'Different': 'Attacker uses valid ECG from a different operator. Features are real but do not match the enrolled template.',
+        'PIN': 'Attacker has the correct biometrics (e.g. captured operator) but does not know the PIN. Biometric similarity passes — key unwrap fails.',
+        'Random': 'Attacker injects random biometric values attempting to brute-force the threshold. Computationally infeasible.',
+    }
+    key = 'PIN' if 'PIN' in attack_type else ('Random' if 'Random' in attack_type else 'Different')
+    desc = descs[key]
     st.markdown(f'<div class="card" style="margin-top:0.5rem;font-size:0.75rem;line-height:1.8;"><div class="card-label">DESCRIPTION</div>{desc}</div>', unsafe_allow_html=True)
 with atk2:
     st.markdown('<div style="height:1.5rem;"></div>', unsafe_allow_html=True)
@@ -350,15 +482,26 @@ if attack_btn:
             attacker = [k for k in OPERATORS if k != st.session_state.enrolled_op]
             attacker = attacker[0] if attacker else list(OPERATORS.keys())[1]
             fake = extract_biometric_vector(OPERATORS[attacker]['bidmc'])
+            attack_pin = None
             detail = f'signal from {attacker}'
+        elif 'PIN' in attack_type:
+            enrolled_paths = OPERATORS.get(st.session_state.enrolled_op, list(OPERATORS.values())[0])
+            fake = extract_biometric_vector(enrolled_paths['bidmc'])
+            attack_pin = 'wrongpin999'
+            detail = 'correct biometrics, wrong PIN'
         else:
             fake = np.random.normal(500, 150, 14)
+            attack_pin = None
             detail = 'random biometric injection'
         sims = {level: biometric_similarity(fake, np.array(profile_loaded['templates'][level])) for level in profile_loaded['templates']}
-        st.session_state.similarities  = sims
-        st.session_state.drone_state   = 'attack'
+        st.session_state.similarities = sims
+        try:
+            authenticate_multi(fake, profile_loaded, pin=attack_pin)
+            st.session_state.auth_result = {'success':False,'label':'ATTACK SUCCEEDED','detail':'WARNING — review threshold'}
+        except ValueError as e:
+            st.session_state.auth_result = {'success':False,'label':'ATTACK BLOCKED','detail':f'{detail} // {str(e)}'}
+        st.session_state.drone_state = 'attack'
         st.session_state['decrypted_db'] = None
-        st.session_state.auth_result   = {'success':False,'label':'ATTACK BLOCKED','detail':f'{detail} // best score: {max(sims.values()):.4f}'}
         st.rerun()
 
 st.markdown(f"""

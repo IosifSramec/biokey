@@ -8,6 +8,26 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 THRESHOLD = 0.85
 
+# Per-feature scaling so each feature contributes meaningfully to the seed.
+# pNN50 (0-1) and amplitude features are scaled up to avoid collapsing to 0
+# when quantized alongside ms-scale RR/respiration interval features.
+FEATURE_SCALES = np.array([
+    1.0,     # RR mean (ms)
+    1.0,     # RR std (ms)
+    1.0,     # RR min (ms)
+    1.0,     # RR max (ms)
+    1.0,     # RR median (ms)
+    1.0,     # RMSSD (ms)
+    1000.0,  # pNN50 (0–1 → 0–1000)
+    1.0,     # resp interval mean (ms)
+    1.0,     # resp interval std (ms)
+    1.0,     # resp interval min (ms)
+    1.0,     # resp interval max (ms)
+    1000.0,  # resp mean amplitude (→ 0–1000)
+    1000.0,  # resp std amplitude  (→ 0–1000)
+    1000.0,  # resp range          (→ 0–1000)
+])
+
 
 def cosine_similarity(a, b):
     dot = np.dot(a, b)
@@ -16,12 +36,6 @@ def cosine_similarity(a, b):
 
 
 def biometric_similarity(features_now, template):
-    """
-    Combined similarity metric:
-    - Cosine similarity captures direction (shape of biometric profile)
-    - Normalized distance captures magnitude (how close to template)
-    Both needed to distinguish same person vs different person.
-    """
     cos_sim = cosine_similarity(features_now, template)
     diff = features_now - template
     rel_dist = np.linalg.norm(diff) / (np.linalg.norm(template) + 1e-9)
@@ -30,32 +44,29 @@ def biometric_similarity(features_now, template):
 
 
 def features_to_seed(features):
-    quantized = (features / (np.abs(features).max() + 1e-9) * 1000).astype(np.int32)
+    scaled = features * FEATURE_SCALES
+    quantized = scaled.astype(np.int32)
     return hashlib.sha256(quantized.tobytes()).digest()
 
 
-def derive_wrapping_key(seed):
+def derive_wrapping_key(seed, pin=None):
+    salt = hashlib.sha256(pin.encode()).digest() if pin else None
     hkdf = HKDF(
         algorithm=hashes.SHA256(),
         length=32,
-        salt=None,
-        info=b'biokey-drone-auth-v1',
+        salt=salt,
+        info=b'biokey-drone-auth-v2',
     )
     return hkdf.derive(seed)
 
 
-def enroll_multi(templates: dict):
-    """
-    Multi-template enrollment.
-    One random AES key, wrapped separately with each stress-level template.
-    Returns profile and the AES key.
-    """
+def enroll_multi(templates: dict, pin: str = None):
     aes_key = os.urandom(32)
 
     wrapped_keys = {}
     for level, features in templates.items():
         seed = features_to_seed(features)
-        wrapping_key = derive_wrapping_key(seed)
+        wrapping_key = derive_wrapping_key(seed, pin)
         nonce = os.urandom(12)
         aesgcm = AESGCM(wrapping_key)
         wrapped = aesgcm.encrypt(nonce, aes_key, None)
@@ -71,12 +82,7 @@ def enroll_multi(templates: dict):
     return profile, aes_key
 
 
-def authenticate_multi(features_now, profile):
-    """
-    Multi-template authentication using nearest neighbor.
-    Finds best matching stress template, unwraps AES key with it.
-    Returns (aes_key, matched_level, all_similarities).
-    """
+def authenticate_multi(features_now, profile, pin: str = None):
     templates = {level: np.array(t) for level, t in profile['templates'].items()}
 
     similarities = {
@@ -89,12 +95,11 @@ def authenticate_multi(features_now, profile):
 
     if best_sim < THRESHOLD:
         raise ValueError(
-            f"No template matched (best: {best_level} = {best_sim:.3f}, required {THRESHOLD})"
+            f"biometric mismatch (best: {best_level} = {best_sim:.3f}, required {THRESHOLD})"
         )
 
-    # Unwrap using the matched template (not the measured features)
     seed = features_to_seed(templates[best_level])
-    wrapping_key = derive_wrapping_key(seed)
+    wrapping_key = derive_wrapping_key(seed, pin)
 
     entry = profile['wrapped_keys'][best_level]
     wrapped = bytes.fromhex(entry['wrapped'])
@@ -104,7 +109,7 @@ def authenticate_multi(features_now, profile):
     try:
         aes_key = aesgcm.decrypt(nonce, wrapped, None)
     except Exception:
-        raise ValueError("Key unwrap failed — access denied")
+        raise ValueError("PIN incorrect — key unwrap failed")
 
     return aes_key, best_level, similarities
 
