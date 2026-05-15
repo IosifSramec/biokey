@@ -136,8 +136,16 @@ def plot_similarity(sims, threshold=0.85):
     return fig
 
 
-for k,v in [('drone_state','idle'),('auth_result',None),('similarities',None),('enrolled_op',None),('decrypted_db',None),('encrypted',None)]:
+for k,v in [('drone_state','idle'),('auth_result',None),('similarities',None),('enrolled_op',None),('decrypted_db',None),('encrypted',None),('event_log',[])]:
     if k not in st.session_state: st.session_state[k] = v
+
+def log_event(msg, level='info'):
+    from datetime import datetime
+    color = ACC if level == 'ok' else (ERR if level == 'err' else '#6aaa6a')
+    ts = datetime.now().strftime('%H:%M:%S')
+    st.session_state.event_log.insert(0, (ts, msg, color))
+    if len(st.session_state.event_log) > 8:
+        st.session_state.event_log.pop()
 
 profile_exists = os.path.exists(PROFILE_PATH)
 
@@ -146,153 +154,38 @@ ds = DRONE_STATES[st.session_state.drone_state]
 enrolled_label = st.session_state.enrolled_op or 'NONE'
 db_state = 'UNLOCKED' if st.session_state.drone_state == 'granted' else 'LOCKED'
 db_color = ACC if st.session_state.drone_state == 'granted' else ERR
-gps_color = ERR if ds['gps'] == 'SPOOFED' else ACC
 
-result_html = ''
-if st.session_state.auth_result:
-    r = st.session_state.auth_result
-    col = ACC if r['success'] else ERR
-    cls = 'result-ok' if r['success'] else 'result-err'
-    result_html = f'<div class="{cls}" style="width:100%;font-size:0.7rem;margin-top:0.3rem;"><b style="color:{col}">{r["label"]}</b><br><span style="color:{col}99;font-size:0.66rem;">{r["detail"]}</span></div>'
+log_html = ''.join(
+    f'<div style="display:flex;gap:0.4rem;align-items:baseline;padding:0.18rem 0;border-bottom:1px solid {ACC}11;">'
+    f'<span style="color:{ACC}44;font-size:0.58rem;flex-shrink:0;">{ts}</span>'
+    f'<span style="color:{color};font-size:0.68rem;line-height:1.3;">{msg}</span></div>'
+    for ts, msg, color in st.session_state.event_log
+)
 
 st.markdown(f"""
 <div class="drone-panel">
-  <div style="color:{ACC}66;font-size:0.6rem;letter-spacing:0.2em;align-self:flex-start;">// DRONE STATUS</div>
-  {make_drone(st.session_state.drone_state, size=24)}
-  <div style="width:100%;display:flex;flex-direction:column;gap:0.4rem;">
-    <div class="card" style="padding:0.5rem;">
+  <div style="color:{ACC}66;font-size:0.6rem;letter-spacing:0.2em;align-self:flex-start;">// SYSTEM STATUS</div>
+  {make_drone(st.session_state.drone_state, size=22)}
+  <div style="width:100%;display:flex;flex-direction:column;gap:0.35rem;">
+    <div class="card" style="padding:0.45rem;">
       <div class="card-label">STATUS</div>
-      <div class="card-value" style="color:{ds['color']};font-size:0.82rem;">{ds['label']}</div>
+      <div class="card-value" style="color:{ds['color']};font-size:0.8rem;">{ds['label']}</div>
     </div>
-    <div class="card" style="padding:0.5rem;">
-      <div class="card-label">GPS</div>
-      <div class="card-value" style="color:{gps_color};font-size:0.82rem;">{ds['gps']}</div>
+    <div class="card" style="padding:0.45rem;">
+      <div class="card-label">OPERATOR</div>
+      <div class="card-value" style="font-size:0.8rem;">{enrolled_label}</div>
     </div>
-    <div class="card" style="padding:0.5rem;">
-      <div class="card-label">ENROLLED OPERATOR</div>
-      <div class="card-value" style="font-size:0.82rem;">{enrolled_label}</div>
-    </div>
-    <div class="card" style="padding:0.5rem;">
-      <div class="card-label">TERRAIN DATABASE</div>
-      <div class="card-value" style="color:{db_color};font-size:0.82rem;">{db_state}</div>
+    <div class="card" style="padding:0.45rem;">
+      <div class="card-label">DATABASE</div>
+      <div class="card-value" style="color:{db_color};font-size:0.8rem;">{db_state}</div>
     </div>
   </div>
-  {result_html}
-</div>
-""", unsafe_allow_html=True)
-
-# ── SECTION 1: OVERVIEW ──────────────────────────────────────────────────────
-st.markdown('<div id="overview"></div>', unsafe_allow_html=True)
-st.markdown(f"""
-<div class="section-sm">
-<div class="sec-label">// SECTION 01</div>
-<div class="sec-title">System Architecture</div>
-<div class="sec-desc">End-to-end workflow — from raw ECG signal to AES-256-GCM encrypted terrain database.</div>
-
-<style>
-.blk {{
-  border:1px solid {ACC}44; border-radius:4px; padding:0.45rem 0.8rem;
-  font-size:0.72rem; text-align:center; background:{SURF};
-  font-family:'Share Tech Mono',monospace;
-}}
-.blk-in  {{ border-color:{ACC}; background:{ACC}18; font-weight:700; }}
-.blk-ok  {{ border-color:{ACC}; background:{ACC}22; color:{ACC}; }}
-.blk-err {{ border-color:{ERR}; background:#fce8e8;  color:{ERR}; }}
-.blk-out {{ border-color:{ACC}99; background:{ACC}12; }}
-.blk-sub {{ font-size:0.63rem; color:{ACC}66; margin-top:0.15rem; }}
-.arr {{ text-align:center; color:{ACC}44; font-size:1rem; line-height:1.4; }}
-.col-title {{ font-size:0.65rem; letter-spacing:0.2em; color:{ACC}66; margin-bottom:0.6rem; }}
-.branch {{ display:flex; gap:0.5rem; align-items:stretch; }}
-.branch-line {{ width:1px; background:{ACC}33; align-self:stretch; }}
-</style>
-
-<div style="display:grid;grid-template-columns:1fr 1px 1fr;gap:1.5rem;margin-top:1rem;">
-
-<!-- ═══ ENROLLMENT ═══ -->
-<div>
-  <div class="col-title">// ENROLLMENT</div>
-
-  <div style="display:flex;gap:0.5rem;">
-    <div class="blk blk-in" style="flex:2;">ECG + RESP<div class="blk-sub">raw signal — 5 stress levels</div></div>
-    <div class="blk blk-in" style="flex:1;">PIN<div class="blk-sub">operator secret</div></div>
-  </div>
-  <div style="display:flex;">
-    <div class="arr" style="flex:2;">↓</div>
-    <div class="arr" style="flex:1;">↓</div>
-  </div>
-  <div style="display:flex;gap:0.5rem;">
-    <div class="blk" style="flex:2;">Feature Extraction<div class="blk-sub">14 features × 5 templates</div></div>
-    <div class="blk" style="flex:1;">SHA-256<div class="blk-sub">→ salt (32B)</div></div>
-  </div>
-  <div style="display:flex;">
-    <div class="arr" style="flex:2;">↓</div>
-    <div class="arr" style="flex:1;">↓</div>
-  </div>
-  <div style="display:flex;gap:0.5rem;">
-    <div class="blk" style="flex:2;">Scale + Quantize → SHA-256<div class="blk-sub">→ seed (32B)</div></div>
-    <div style="flex:1;display:flex;align-items:center;justify-content:center;color:{ACC}44;font-size:1.2rem;">↘</div>
-  </div>
-  <div class="arr">↓</div>
-  <div class="blk">HKDF — SHA-256<div class="blk-sub">HKDF( seed, salt ) → wrapping_key (32B)</div></div>
-  <div class="arr">↓</div>
-  <div style="display:flex;gap:0.5rem;align-items:center;">
-    <div class="blk" style="flex:2;">AES-256-GCM Encrypt<div class="blk-sub">wrapping_key.encrypt( aes_key )</div></div>
-    <div style="flex:1;font-size:0.68rem;color:{ACC}66;text-align:center;">← aes_key<br>os.urandom(32)<br>generated once</div>
-  </div>
-  <div class="arr">↓</div>
-  <div class="blk blk-out">Profile JSON<div class="blk-sub">wrapped_key × 5 &nbsp;|&nbsp; templates × 5</div></div>
-  <div class="arr">↓</div>
-  <div class="blk blk-out">AES-256-GCM Encrypt<div class="blk-sub">aes_key.encrypt( terrain_db ) → stored</div></div>
-</div>
-
-<!-- divider -->
-<div style="background:{ACC}22;"></div>
-
-<!-- ═══ AUTHENTICATION ═══ -->
-<div>
-  <div class="col-title">// AUTHENTICATION</div>
-
-  <div style="display:flex;gap:0.5rem;">
-    <div class="blk blk-in" style="flex:2;">Live ECG<div class="blk-sub">current measurement</div></div>
-    <div class="blk blk-in" style="flex:1;">PIN<div class="blk-sub">operator input</div></div>
-  </div>
-  <div class="arr">↓</div>
-  <div class="blk">Feature Extraction<div class="blk-sub">14 features from live signal</div></div>
-  <div class="arr">↓</div>
-  <div class="blk">Biometric Similarity × 5<div class="blk-sub">( cosine + proximity ) / 2 vs each template</div></div>
-  <div class="arr">↓</div>
-  <div class="blk" style="border-color:{ACC}88;">best_sim &gt; 0.85 ?<div class="blk-sub">nearest-neighbor threshold check</div></div>
-  <div style="display:flex;gap:0.5rem;">
-    <div style="flex:1;">
-      <div class="arr">↓ NO</div>
-      <div class="blk blk-err">ACCESS DENIED<div class="blk-sub">biometric mismatch</div></div>
-    </div>
-    <div style="flex:1;">
-      <div class="arr">↓ YES</div>
-      <div class="blk">Stored Template<div class="blk-sub">best match → seed derivation</div></div>
-      <div class="arr">↓</div>
-      <div class="blk">Scale + Quantize → SHA-256<div class="blk-sub">seed + SHA-256(PIN) = salt</div></div>
-      <div class="arr">↓</div>
-      <div class="blk">HKDF → wrapping_key<div class="blk-sub">deterministic from template + PIN</div></div>
-      <div class="arr">↓</div>
-      <div class="blk">AES-256-GCM Decrypt<div class="blk-sub">wrapping_key.decrypt( wrapped_key )</div></div>
-      <div style="display:flex;gap:0.4rem;">
-        <div style="flex:1;">
-          <div class="arr" style="font-size:0.7rem;">↓ tag fail</div>
-          <div class="blk blk-err" style="font-size:0.66rem;">PIN WRONG<div class="blk-sub">GCM auth tag mismatch</div></div>
-        </div>
-        <div style="flex:1;">
-          <div class="arr" style="font-size:0.7rem;">↓ ok</div>
-          <div class="blk">aes_key (32B)<div class="blk-sub">unwrapped</div></div>
-          <div class="arr">↓</div>
-          <div class="blk blk-ok">ACCESS GRANTED<div class="blk-sub">terrain DB decrypted</div></div>
-        </div>
-      </div>
+  <div style="width:100%;margin-top:0.3rem;">
+    <div style="color:{ACC}55;font-size:0.6rem;letter-spacing:0.15em;margin-bottom:0.3rem;">// EVENT LOG</div>
+    <div style="width:100%;background:{SURF};border:1px solid {ACC}22;border-radius:4px;padding:0.4rem 0.5rem;min-height:4rem;">
+      {log_html if log_html else f'<span style="color:{ACC}33;font-size:0.65rem;">awaiting events...</span>'}
     </div>
   </div>
-</div>
-
-</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -365,6 +258,8 @@ if enroll_btn:
             st.session_state.drone_state  = 'enrolled'
             st.session_state.auth_result  = {'success':True,'label':'ENROLLMENT COMPLETE','detail':f'{enroll_op} // {len(templates)} templates'}
             st.session_state.similarities = None
+            log_event(f'ENROLLMENT COMPLETE — {enroll_op} // {len(templates)} templates', 'ok')
+            log_event(f'AES-256 key generated — terrain DB encrypted', 'ok')
         st.rerun()
 
 if profile_exists:
@@ -430,11 +325,14 @@ if auth_btn:
             st.session_state['decrypted_db'] = decrypted.decode()
             st.session_state.drone_state = 'granted'
             st.session_state.auth_result = {'success':True,'label':'ACCESS GRANTED','detail':f'matched: {matched.upper()} // score: {max(sims.values()):.4f}'}
+            log_event(f'AUTH OK — {auth_op.split()[-1]} // {matched} // {max(sims.values()):.4f}', 'ok')
+            log_event(f'ACCESS GRANTED — payload decrypted', 'ok')
         except ValueError as e:
             st.session_state.drone_state = 'denied'
             detail = str(e)
             st.session_state.auth_result = {'success':False,'label':'ACCESS DENIED','detail':detail}
             st.session_state['decrypted_db'] = None
+            log_event(f'ACCESS DENIED — {detail}', 'err')
         st.rerun()
 
 if st.session_state.similarities:
@@ -498,8 +396,11 @@ if attack_btn:
         try:
             authenticate_multi(fake, profile_loaded, pin=attack_pin)
             st.session_state.auth_result = {'success':False,'label':'ATTACK SUCCEEDED','detail':'WARNING — review threshold'}
+            log_event(f'WARNING — attack succeeded, review threshold', 'err')
         except ValueError as e:
             st.session_state.auth_result = {'success':False,'label':'ATTACK BLOCKED','detail':f'{detail} // {str(e)}'}
+            log_event(f'ATTACK BLOCKED — {detail}', 'err')
+            log_event(f'ACCESS DENIED — payload inaccessible', 'err')
         st.session_state.drone_state = 'attack'
         st.session_state['decrypted_db'] = None
         st.rerun()
