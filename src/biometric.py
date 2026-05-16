@@ -1,18 +1,10 @@
 import numpy as np
 import neurokit2 as nk
 import wfdb
-from scipy.signal import butter, filtfilt, resample
+from scipy.signal import butter, filtfilt
 
 
 STRESS_LEVELS = ['rest', 'light', 'moderate', 'heavy', 'cognitive']
-
-HR_THRESHOLDS = {
-    'rest':     (0,   90),
-    'light':    (90,  110),
-    'moderate': (110, 130),
-    'heavy':    (130, 160),
-    'cognitive':(160, 220),
-}
 
 
 def load_subject(record_path):
@@ -36,15 +28,33 @@ def extract_ecg_features(ecg, fs, window_sec=60):
         raise ValueError("Not enough R-peaks detected")
 
     rr = np.diff(r_peaks) / fs * 1000
+    rmssd = float(np.sqrt(np.mean(np.diff(rr) ** 2)))
+    sdnn  = float(np.std(rr))
+
+    # Poincaré plot indices (closed-form from RR series)
+    sd1 = rmssd / np.sqrt(2)
+    sd2 = float(np.sqrt(max(2 * sdnn ** 2 - sd1 ** 2, 0.0)))
+
+    # LF/HF ratio — frequency-domain discriminator
+    try:
+        hrv_freq = nk.hrv_frequency(r_peaks, sampling_rate=fs, show=False)
+        lf_hf = float(hrv_freq['HRV_LFHF'].iloc[0])
+        if np.isnan(lf_hf) or lf_hf <= 0:
+            lf_hf = 1.5
+    except Exception:
+        lf_hf = 1.5
 
     features = np.array([
         np.mean(rr),
-        np.std(rr),
+        sdnn,
         np.min(rr),
         np.max(rr),
         np.median(rr),
-        np.sqrt(np.mean(np.diff(rr) ** 2)),        # RMSSD
-        np.sum(np.abs(np.diff(rr)) > 50) / len(rr), # pNN50
+        rmssd,
+        np.sum(np.abs(np.diff(rr)) > 50) / len(rr),  # pNN50
+        sd1,
+        sd2,
+        lf_hf,
     ])
     return features
 
@@ -166,15 +176,3 @@ def extract_stress_templates(stdb_record_path, bidmc_record_path):
         templates[level] = np.concatenate([ecg_feat, resp_feat])
 
     return templates
-
-
-def get_current_hr(ecg, fs, window_sec=10):
-    """Estimate current heart rate from short ECG window."""
-    samples = min(window_sec * fs, len(ecg))
-    ecg_clean = nk.ecg_clean(ecg[:samples], sampling_rate=fs)
-    _, info = nk.ecg_peaks(ecg_clean, sampling_rate=fs)
-    r_peaks = info['ECG_R_Peaks']
-    if len(r_peaks) < 2:
-        return 70
-    rr_mean = np.mean(np.diff(r_peaks)) / fs
-    return int(60 / rr_mean)

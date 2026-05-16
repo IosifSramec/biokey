@@ -1,4 +1,3 @@
-import sys
 import os
 import json
 import numpy as np
@@ -6,7 +5,6 @@ import streamlit as st
 import plotly.graph_objects as go
 import neurokit2 as nk
 
-sys.path.insert(0, '.')
 from src.biometric import load_subject, extract_stress_templates, extract_biometric_vector, STRESS_LEVELS, get_ecg_segment_for_level
 from src.keyderivation import enroll_multi, authenticate_multi, save_profile, load_profile, biometric_similarity
 from src.crypto import encrypt_database, decrypt_database
@@ -33,12 +31,12 @@ GRID  = 'rgba(26,92,26,0.1)'
 ERR   = '#b91c1c'
 
 DRONE_STATES = {
-    'idle':       {'led':ACC,      'label':'STANDBY',         'gps':'ACTIVE',  'color':ACC},
-    'enrolled':   {'led':'#2d7a2d','label':'OPERATOR LOCKED', 'gps':'ACTIVE',  'color':'#2d7a2d'},
-    'granted':    {'led':'#166016','label':'ACCESS GRANTED',  'gps':'ACTIVE',  'color':'#166016'},
-    'denied':     {'led':ERR,      'label':'ACCESS DENIED',   'gps':'ACTIVE',  'color':ERR},
-    'attack':     {'led':ERR,      'label':'ATTACK BLOCKED',  'gps':'SPOOFED', 'color':ERR},
-    'processing': {'led':'#4a9a4a','label':'PROCESSING...',   'gps':'ACTIVE',  'color':'#4a9a4a'},
+    'idle':       {'led':ACC,      'label':'STANDBY',         'color':ACC},
+    'enrolled':   {'led':'#2d7a2d','label':'OPERATOR LOCKED', 'color':'#2d7a2d'},
+    'granted':    {'led':'#166016','label':'ACCESS GRANTED',  'color':'#166016'},
+    'denied':     {'led':ERR,      'label':'ACCESS DENIED',   'color':ERR},
+    'attack':     {'led':ERR,      'label':'ATTACK BLOCKED',  'color':ERR},
+    'processing': {'led':'#4a9a4a','label':'PROCESSING...',   'color':'#4a9a4a'},
 }
 
 st.set_page_config(page_title='BioKey', layout='wide')

@@ -87,10 +87,10 @@ t(s, 'Your heartbeat is the key —\nat any stress level.', 0.7, 1.3, 11.5, 2.6,
 t(s, 'Stress-Invariant Biometric Authentication  ·  AES-256-GCM',
   0.7, 4.1, 11.5, 0.6, size=20, color=ACC)
 hline(s, 4.95, SURF2, 0.06)
-t(s, 'HackTM 2026   //   Defence Track   //   Product Innovation Track',
+t(s, 'HackTM 2026   //   Defence Track',
   0.7, 5.15, 12, 0.45, size=14, color=MUTED)
-t(s, 'Iosif Sramec   //   UPT AC',
-  0.7, 5.65, 12, 0.45, size=14, color=MUTED)
+t(s, 'Jigmond Alexandru   ·   Milotin Rareș   ·   Sramec Iosif   ·   Stan Cristian     //     UPT AC',
+  0.7, 5.65, 12, 0.45, size=12, color=MUTED)
 
 
 # ══════════════════════════════════════════════════════════════════════════════

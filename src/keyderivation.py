@@ -6,19 +6,21 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-THRESHOLD = 0.85
+THRESHOLD = 0.90
 
 # Per-feature scaling so each feature contributes meaningfully to the seed.
-# pNN50 (0-1) and amplitude features are scaled up to avoid collapsing to 0
-# when quantized alongside ms-scale RR/respiration interval features.
+# Unitless/small-range features are scaled up to avoid quantization collapse.
 FEATURE_SCALES = np.array([
     1.0,     # RR mean (ms)
-    1.0,     # RR std (ms)
+    1.0,     # RR std / SDNN (ms)
     1.0,     # RR min (ms)
     1.0,     # RR max (ms)
     1.0,     # RR median (ms)
     1.0,     # RMSSD (ms)
     1000.0,  # pNN50 (0–1 → 0–1000)
+    1.0,     # SD1 Poincaré (ms)
+    1.0,     # SD2 Poincaré (ms)
+    100.0,   # LF/HF ratio (0.5–5 → 50–500)
     1.0,     # resp interval mean (ms)
     1.0,     # resp interval std (ms)
     1.0,     # resp interval min (ms)
