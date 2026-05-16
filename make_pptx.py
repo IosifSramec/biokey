@@ -7,11 +7,9 @@ BG    = RGBColor(0x0d, 0x1a, 0x0d)
 SURF  = RGBColor(0x14, 0x2a, 0x14)
 SURF2 = RGBColor(0x1a, 0x35, 0x1a)
 ACC   = RGBColor(0x4a, 0x9a, 0x4a)
-ACC2  = RGBColor(0x2d, 0x7a, 0x2d)
 LIGHT = RGBColor(0xe8, 0xf5, 0xe0)
 MUTED = RGBColor(0x6a, 0xaa, 0x6a)
 RED   = RGBColor(0xb9, 0x1c, 0x1c)
-YELLOW= RGBColor(0xd4, 0xc5, 0x00)
 
 W = Inches(13.33)
 H = Inches(7.5)
@@ -68,101 +66,100 @@ s = slide()
 hline(s, 0.5)
 hline(s, 6.85)
 
-t(s, '// BIOKEY SYSTEM v2.0', 0.7, 0.7, 12, 0.5, size=13, color=MUTED)
-t(s, 'Your heartbeat is the key —\nat any stress level.', 0.7, 1.3, 11.5, 2.6,
-  size=52, bold=True, color=LIGHT)
+t(s, '// BIOKEY', 0.7, 0.7, 12, 0.5, size=13, color=MUTED)
+t(s, 'Your heartbeat is the key —\nat any stress level.', 0.7, 1.3, 11.5, 2.8,
+  size=54, bold=True, color=LIGHT)
 t(s, 'Stress-Invariant Biometric Authentication  ·  AES-256-GCM',
-  0.7, 4.1, 11.5, 0.6, size=20, color=ACC)
-hline(s, 4.95, SURF2, 0.06)
+  0.7, 4.2, 11.5, 0.6, size=19, color=ACC)
+hline(s, 5.0, SURF2, 0.06)
 t(s, 'HackTM 2026   //   Defence Track',
-  0.7, 5.15, 12, 0.45, size=14, color=MUTED)
+  0.7, 5.2, 12, 0.45, size=14, color=MUTED)
 t(s, 'Jigmond Alexandru   ·   Milotin Rareș   ·   Sramec Iosif   ·   Stan Cristian     //     UPT AC',
-  0.7, 5.65, 12, 0.45, size=12, color=MUTED)
+  0.7, 5.7, 12, 0.45, size=12, color=MUTED)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SLIDE 2 — PROBLEM
+# SLIDE 2 — PROBLEM & CAUSE
 # ══════════════════════════════════════════════════════════════════════════════
 s = slide()
 hline(s, 0.5)
-t(s, '// 01  PROBLEM', 0.7, 0.62, 12, 0.4, size=12, color=MUTED)
-t(s, 'Authentication breaks\nwhen it matters most.', 0.7, 1.05, 11, 1.7,
-  size=40, bold=True, color=LIGHT)
+t(s, '// 01  PROBLEM & CAUSE', 0.7, 0.62, 12, 0.4, size=12, color=MUTED)
+t(s, 'Authentication fails\nwhen it matters most.', 0.7, 1.05, 12, 1.6,
+  size=42, bold=True, color=LIGHT)
+
+t(s, 'The human body changes under stress. Authentication systems don\'t.',
+  0.7, 2.8, 12, 0.5, size=17, italic=True, color=MUTED)
 
 cards = [
-    ('STRESS',          'A soldier\'s ECG at 70 bpm\nis not the same at 160 bpm.\nThe system denies its own operator.'),
-    ('CAPTURE',         'If the device is seized,\nall onboard data is immediately\naccessible. No cryptographic barrier.'),
-    ('COERCION',        'Passwords and cards\ncan be taken by force.\nThe operator cannot protect them.'),
-    ('SINGLE TEMPLATE', 'Every existing biometric system\nenrolls once, at rest.\nField conditions break the assumption.'),
+    ('STRESS CHANGES THE BODY',
+     'HR: 70 bpm → 160 bpm\nECG enrolled at rest fails in the field.\nThe system denies its own operator.'),
+    ('CAPTURED HARDWARE',
+     'No cryptographic binding to the operator.\nSeized device = immediate data access.'),
+    ('COERCION',
+     'Passwords and cards can be taken by force.\nThe operator cannot protect them.'),
 ]
 for i, (title, desc) in enumerate(cards):
-    cx = 0.4 + i * 3.15
-    bx(s, cx, 3.0, 3.0, 2.9, fill=SURF, border=RED, bw=Pt(1.5))
-    t(s, title, cx+0.15, 3.12, 2.75, 0.4, size=11, bold=True, color=RED)
-    t(s, desc,  cx+0.15, 3.62, 2.75, 2.0, size=13, color=MUTED)
+    cx = 0.4 + i * 4.3
+    bx(s, cx, 3.45, 4.0, 2.9, fill=SURF, border=RED, bw=Pt(1.5))
+    t(s, title, cx+0.18, 3.57, 3.7, 0.45, size=11, bold=True, color=RED)
+    t(s, desc,  cx+0.18, 4.15, 3.7, 2.0,  size=14, color=MUTED)
 
 hline(s, 6.85)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SLIDE 3 — SOLUTION
+# SLIDE 3 — WHAT EXISTS vs WHAT WE HAVE
 # ══════════════════════════════════════════════════════════════════════════════
 s = slide()
 hline(s, 0.5)
-t(s, '// 02  SOLUTION', 0.7, 0.62, 12, 0.4, size=12, color=MUTED)
-t(s, 'Operator-bound encryption.\nStress-invariant.', 0.7, 1.05, 12, 1.5,
-  size=38, bold=True, color=LIGHT)
+t(s, '// 02  EXISTING SOLUTIONS vs BIOKEY', 0.7, 0.62, 12, 0.4, size=12, color=MUTED)
+t(s, 'Everything leaves a gap.\nWe close it.', 0.7, 1.05, 12, 1.5,
+  size=40, bold=True, color=LIGHT)
 
-points = [
-    ('MULTI-TEMPLATE ENROLLMENT',
-     'The operator is enrolled across 5 physiological states — rest to heavy exertion. The system recognizes them at any heart rate, automatically.'),
-    ('BIOMETRIC KEY DERIVATION',
-     'The AES-256 encryption key is derived directly from the cardiac signature + PIN. Without the right person, the data is cryptographically inaccessible — not just access-restricted.'),
-    ('SECOND FACTOR — PIN',
-     'Even with correct biometrics, a wrong PIN fails at the cryptographic level. Captured biometric data alone is not enough.'),
-]
-for i, (title, desc) in enumerate(points):
-    cy = 2.75 + i * 1.22
-    bx(s, 0.4, cy, 12.5, 1.08, fill=SURF, border=ACC, bw=Pt(1.5))
-    t(s, title, 0.6, cy+0.1,  3.5,  0.35, size=11, bold=True, color=ACC)
-    t(s, desc,  4.3, cy+0.1, 8.4, 0.85, size=14, color=LIGHT)
+# Left — what exists
+bx(s, 0.4, 2.75, 5.9, 3.65, fill=SURF, border=RED, bw=Pt(1.5))
+t(s, 'WHAT EXISTS', 0.6, 2.87, 5.6, 0.4, size=11, bold=True, color=RED)
+for i, line in enumerate([
+    '✕  Passwords — coerced or forgotten',
+    '✕  Smart cards — lost or stolen',
+    '✕  Single biometric template — fails under stress',
+    '✕  Hardware encryption — key tied to device, not operator',
+]):
+    t(s, line, 0.6, 3.45+i*0.68, 5.6, 0.6, size=14, color=MUTED)
+
+# Right — BioKey
+bx(s, 7.0, 2.75, 5.9, 3.65, fill=SURF, border=ACC, bw=Pt(2))
+t(s, 'BIOKEY', 7.2, 2.87, 5.6, 0.4, size=11, bold=True, color=ACC)
+for i, line in enumerate([
+    '✓  5 templates — covers all stress levels',
+    '✓  Key derived from biometrics — not stored',
+    '✓  PIN second factor — biometrics alone not enough',
+    '✓  Captured hardware = only ciphertext',
+]):
+    t(s, line, 7.2, 3.45+i*0.68, 5.6, 0.6, size=14, color=LIGHT)
 
 hline(s, 6.85)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SLIDE 4 — BUSINESS
+# SLIDE 4 — CLOSING
 # ══════════════════════════════════════════════════════════════════════════════
 s = slide()
 hline(s, 0.5)
-t(s, '// 03  IMPACT & SCALABILITY', 0.7, 0.62, 12, 0.4, size=12, color=MUTED)
-t(s, 'Any role where the right person\nmust be at the controls — right now.',
-  0.7, 1.05, 11, 1.4, size=34, bold=True, color=LIGHT)
-
-# Left column — markets
-bx(s, 0.4, 2.7, 5.9, 3.8, fill=SURF)
-t(s, 'DEFENCE', 0.6, 2.82, 5.6, 0.4, size=12, bold=True, color=RED)
-for i, item in enumerate([
-    'Drone operator authentication',
-    'Forward operating base access',
-    'Classified device protection',
-    'Two-man rule implementation',
-]):
-    t(s, f'→  {item}', 0.6, 3.38+i*0.55, 5.6, 0.5, size=15, color=LIGHT)
-
-bx(s, 6.9, 2.7, 5.9, 3.8, fill=SURF, border=ACC, bw=Pt(1.5))
-t(s, 'CIVIL & INDUSTRIAL', 7.1, 2.82, 5.6, 0.4, size=12, bold=True, color=ACC)
-for i, item in enumerate([
-    'Critical infrastructure access',
-    'Air traffic controller verification',
-    'Nuclear plant operator auth',
-    'Surgeon / operating room control',
-]):
-    t(s, f'→  {item}', 7.1, 3.38+i*0.55, 5.6, 0.5, size=15, color=LIGHT)
-
-t(s, 'Cryptographic layer is production-ready.  Path to deployment: TPM/HSM integration — no fundamental blockers.',
-  0.7, 6.58, 12, 0.35, size=12, italic=True, color=MUTED)
 hline(s, 6.85)
+
+t(s, '"We are the key\nto your heartbeat."',
+  0.7, 1.0, 12, 3.4, size=56, bold=True, color=LIGHT,
+  align=PP_ALIGN.CENTER, italic=True)
+
+hline(s, 4.75, SURF2, 0.05)
+
+t(s, 'AES-256-GCM   ·   HKDF-SHA256   ·   Multi-Template HRV   ·   PIN Second Factor',
+  0.7, 4.95, 12, 0.5, size=15, color=ACC, align=PP_ALIGN.CENTER)
+t(s, 'github.com/IosifSramec/biokey',
+  0.7, 5.6, 12, 0.45, size=14, color=MUTED, align=PP_ALIGN.CENTER)
+t(s, 'HackTM 2026   //   Defence Track',
+  0.7, 6.1, 12, 0.4, size=13, color=MUTED, align=PP_ALIGN.CENTER)
 
 
 # ── Save ──────────────────────────────────────────────────────────────────────
